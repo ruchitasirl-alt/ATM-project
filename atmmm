@@ -1,0 +1,386 @@
+import random
+from datetime import datetime
+
+# ===================== ATM BANKING SYSTEM ===================== #
+
+accounts = {
+    "Hrushika": {
+        "pin": 1234,
+        "balance": 10000.0,
+        "history": []
+    },
+    "Rahul": {
+        "pin": 5678,
+        "balance": 15000.0,
+        "history": []
+    }
+}
+
+current_user = None
+
+
+# ===================== UTILITY FUNCTIONS ===================== #
+
+def timestamp():
+    return datetime.now().strftime("%d-%m-%Y %I:%M:%S %p")
+
+
+def add_transaction(username, message):
+    accounts[username]["history"].append(
+        f"{timestamp()} | {message}"
+     )
+
+
+# ===================== LOGIN ===================== #
+
+def login():
+    global current_user
+
+    print("\n" + "=" * 50)
+    print("        WELCOME TO PYTHON BANK ATM")
+    print("=" * 50)
+
+    username = input("Enter Username: ")
+
+    if username not in accounts:
+        print("❌ User not found!")
+        return False
+
+    attempts = 3
+
+    while attempts > 0:
+        try:
+            entered_pin = int(input("Enter PIN: ").strip())
+
+            if entered_pin == accounts[username]["pin"]:
+                current_user = username
+                print(f"\n✅ Login Successful!")
+                print(f"Welcome, {username}")
+                return True
+
+            else:
+                attempts -= 1
+                print(f"❌ Wrong PIN! Attempts left: {attempts}")
+
+        except ValueError:
+            attempts -= 1
+            print("⚠️ Enter numbers only!")
+
+    print("🔒 Account Locked!")
+    return False
+
+
+# ===================== ACCOUNT DETAILS ===================== #
+
+def account_details():
+    print("\n" + "=" * 50)
+    print("          ACCOUNT DETAILS")
+    print("=" * 50)
+
+    print(f"Account Holder : {current_user}")
+    print(f"Account Number : {random.randint(1000000000,9999999999)}")
+    print("Account Type   : Savings")
+    print("Branch         : Python Bank")
+    print(f"Balance        : ₹{accounts[current_user]['balance']:.2f}")
+
+
+# ===================== CHECK BALANCE ===================== #
+
+def check_balance():
+    print("\n" + "-" * 50)
+    print(f"Current Balance : ₹{accounts[current_user]['balance']:.2f}")
+    print("-" * 50)
+
+
+# ===================== DEPOSIT ===================== #
+
+def deposit():
+
+    try:
+        amount = float(input("Enter amount to deposit: ₹"))
+
+        if amount <= 0:
+            print("❌ Amount must be positive!")
+            return
+
+        accounts[current_user]["balance"] += amount
+
+        add_transaction(
+            current_user,
+            f"Deposited ₹{amount:.2f}"
+        )
+
+        print(f"✅ ₹{amount:.2f} Deposited Successfully!")
+
+    except ValueError:
+        print("⚠️ Invalid Amount!")
+
+
+# ===================== WITHDRAW ===================== #
+
+def withdraw():
+
+    try:
+        amount = float(input("Enter amount to withdraw: ₹"))
+
+        if amount <= 0:
+            print("❌ Amount must be positive!")
+            return
+
+        if amount > accounts[current_user]["balance"]:
+            print("❌ Insufficient Balance!")
+            return
+
+        accounts[current_user]["balance"] -= amount
+
+        add_transaction(
+            current_user,
+            f"Withdrawn Rs.{amount:.2f}"
+        )
+
+        print(f"✅ Rs.{amount:.2f} Withdrawn Successfully!")
+
+        generate_receipt("Withdrawal", amount)
+
+    except ValueError:
+        print("⚠️ Invalid Amount!")
+# ===================== FUND TRANSFER ===================== #
+
+def transfer_money():
+
+    receiver = input("Enter Receiver Username: ")
+
+    if receiver not in accounts:
+        print("❌ Receiver account not found!")
+        return
+
+    if receiver == current_user:
+        print("❌ Cannot transfer to your own account!")
+        return
+
+    try:
+        amount = float(input("Enter amount to transfer: Rs.").strip())
+
+        if amount <= 0:
+            print("❌ Amount must be positive!")
+            return
+
+        if amount > accounts[current_user]["balance"]:
+            print("❌ Insufficient Balance!")
+            return
+
+        accounts[current_user]["balance"] -= amount
+        accounts[receiver]["balance"] += amount
+
+        add_transaction(
+            current_user,
+            f"Transferred ₹{amount:.2f} to {receiver}"
+        )
+
+        add_transaction(
+            receiver,
+            f"Received ₹{amount:.2f} from {current_user}"
+        )
+
+        print(f"✅ ₹{amount:.2f} transferred to {receiver} successfully!")
+
+        generate_receipt("Fund Transfer", amount)
+
+    except ValueError:
+        print("⚠️ Invalid Amount!")
+
+
+# ===================== CHANGE PIN ===================== #
+
+def change_pin():
+
+    try:
+        old_pin = int(input("Enter Current PIN: "))
+
+        if old_pin != accounts[current_user]["pin"]:
+            print("❌ Incorrect Current PIN!")
+            return
+
+        new_pin = int(input("Enter New 4-digit PIN: "))
+        confirm_pin = int(input("Confirm New PIN: "))
+
+        if new_pin != confirm_pin:
+            print("❌ PINs do not match!")
+            return
+
+        if len(str(new_pin)) != 4:
+            print("❌ PIN must be exactly 4 digits!")
+            return
+
+        accounts[current_user]["pin"] = new_pin
+
+        add_transaction(
+            current_user,
+            "PIN Changed Successfully"
+        )
+
+        print("✅ PIN Updated Successfully!")
+
+    except ValueError:
+        print("⚠️ Enter numeric PIN only!")
+
+
+# ===================== TRANSACTION HISTORY ===================== #
+
+def transaction_history():
+
+    print("\n" + "=" * 60)
+    print("            TRANSACTION HISTORY")
+    print("=" * 60)
+
+    history = accounts[current_user]["history"]
+
+    if not history:
+        print("No transactions found.")
+        return
+
+    for i, record in enumerate(history, start=1):
+        print(f"{i}. {record}")
+
+
+# ===================== MINI STATEMENT ===================== #
+
+def mini_statement():
+
+    print("\n" + "=" * 60)
+    print("              MINI STATEMENT")
+    print("=" * 60)
+
+    history = accounts[current_user]["history"]
+
+    if not history:
+        print("No transactions available.")
+        return
+
+    recent = history[-5:]
+
+    for record in recent:
+        print(record)
+
+
+# ===================== RECEIPT ===================== #
+
+def generate_receipt(transaction_type, amount):
+
+    print("\n")
+    print("=" * 40)
+    print("          ATM RECEIPT")
+    print("=" * 40)
+
+    print(f"User        : {current_user}")
+    print(f"Transaction : {transaction_type}")
+    print(f"Amount      : ₹{amount:.2f}")
+    print(f"Balance     : ₹{accounts[current_user]['balance']:.2f}")
+    print(f"Date & Time : {timestamp()}")
+
+    print("=" * 40)
+    # ===================== SAVE REPORT ===================== #
+
+def save_report():
+
+    
+    filename = f"{current_user}_ATM_Report.txt"
+    
+    try:
+        with open(filename, "w", encoding="utf-8") as file:
+            file.write("===== ATM TRANSACTION REPORT =====\n\n")
+            file.write(f"Account Holder : {current_user}\n") 
+            file.write(f"Current Balance : ₹{accounts[current_user]['balance']:.2f}\n\n")
+            file.write("TRANSACTION HISTORY\n")
+            file.write("-" * 50 + "\n")
+
+            history = accounts[current_user]["history"]
+            if history:
+                for record in history:
+                    file.write(record + "\n")
+            else:
+                file.write("No transactions available.\n")
+
+        print(f"\n📁 Report saved as '{filename}'")
+
+    except Exception as e:
+        print(f"⚠️ Could not save report: {e}")
+
+# ===================== MENU ===================== #
+
+def menu():
+
+    print("\n")
+    print("=" * 50)
+    print("             ATM MAIN MENU")
+    print("=" * 50)
+
+    print("1. Account Details")
+    print("2. Check Balance")
+    print("3. Deposit Money")
+    print("4. Withdraw Money")
+    print("5. Transfer Money")
+    print("6. Change PIN")
+    print("7. Transaction History")
+    print("8. Mini Statement")
+    print("9. Save Report and exit")
+    
+
+    print("=" * 50)
+
+
+# ===================== MAIN PROGRAM ===================== #
+
+if login():
+
+    while True:
+
+        menu()
+
+        try:
+            choice = int(input("\nEnter your choice (1-9): "))
+
+            if choice == 1:
+                account_details()
+
+            elif choice == 2:
+                check_balance()
+
+            elif choice == 3:
+                deposit()
+
+            elif choice == 4:
+                withdraw()
+
+            elif choice == 5:
+                transfer_money()
+
+            elif choice == 6:
+                change_pin()
+
+            elif choice == 7:
+                transaction_history()
+
+            elif choice == 8:
+                mini_statement()
+
+            
+
+            elif choice == 9:
+                ans = input("Save report before exiting? (y/n): ").lower()
+                if ans == 'y':
+                    save_report()
+               
+                print("\n" + "=" * 50)
+                print(" Thank You For Using Python Bank ATM ")
+                print("=" * 50)
+                break
+
+            else:
+                print("⚠️ Please select between 1 and 9.")
+
+        except ValueError:
+            print("⚠️ Invalid Input! Enter numbers only.")
+
+else:
+    print("\nAccess Denied.")
